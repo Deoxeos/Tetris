@@ -1,4 +1,3 @@
-//TPoint.java
 /*
  This is just a trivial "struct" type class --
  it simply holds an int x/y point for use by Tetris,
@@ -10,11 +9,7 @@ public class TPoint {
 	public int x;
 	public int y;
 
-	// Creates a TPoint based in int x,y
 	public TPoint(int x, int y) {
-		// questionable style but convenient --
-		// params with same name as ivars
-
 		this.x = x;
 		this.y = y;
 	}
@@ -25,19 +20,26 @@ public class TPoint {
 		this.y = point.y;
 	}
 
-	// Standard equals() override
+	@Override
+	public int hashCode() {
+		return this.x + this.y;
+	}
+	
+	@Override
 	public boolean equals(Object other) {
-		// standard two checks for equals()
-		if (this == other) return true;
-		if (!(other instanceof TPoint)) return false;
+		if (this == other) {
+			return true;
+		}
 
-		// check if other point same as us
-		TPoint pt = (TPoint)other;
-		return(x==pt.x && y==pt.y);
+		if (!(other instanceof TPoint)) {
+			return false;
+		}
+
+		TPoint pt = (TPoint) other;
+		return (this.x == pt.x && this.y == pt.y);
 	}
 
-	// Standard toString() override, produce
-	// human-readable String from object
+	@Override
 	public String toString() {
 		return "(" + x + "," + y + ")";
 	}

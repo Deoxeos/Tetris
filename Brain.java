@@ -19,8 +19,6 @@ public interface Brain {
      limitHeight is the height of the lower part of the board that pieces
      must be inside when they land for the game to keep going
       -- typically 20 (i.e. board.getHeight() - 4)
-     If the passed in move is non-null, it is used to hold the result
-     (just to save the memory allocation).
     */
-    public Brain.Move bestMove(Board board, Piece piece, int limitHeight, Brain.Move move);
+    public Brain.Move bestMove(Board board, Piece piece, int limitHeight);
 }

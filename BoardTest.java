@@ -1,49 +1,60 @@
 import static org.junit.Assert.*;
 
-import org.junit.*;
+import java.util.Arrays;
+
+import org.junit.Test;
 
 public class BoardTest {
-	Board b;
-	Piece pyr1, pyr2, pyr3, pyr4, s, sRotated,stick,square;
 
-	// This shows how to build things in setUp() to re-use
-	// across tests.
-
-	// In this case, setUp() makes shapes,
-	// and also a 3X6 board, with pyr placed at the bottom,
-	// ready to be used by tests.
-	@Before
-	public void setUp() throws Exception {
-		b = new Board(3, 6);
-
-		pyr1 = new Piece(Piece.PYRAMID_STR);
-		pyr2 = pyr1.computeNextRotation();
-		pyr3 = pyr2.computeNextRotation();
-		pyr4 = pyr3.computeNextRotation();
-
-		s = new Piece(Piece.S1_STR);
-		sRotated = s.computeNextRotation();
-
-		stick = new Piece(Piece.STICK_STR);
-		square = new Piece(Piece.SQUARE_STR);
-
-		b.place(pyr1, 0, 0);
-	}
-
-	// Check the basic width/height/max after the one placement
 	@Test
-	public void testSample1() {
+	public void testTwoPieces() {
+		Board b = new Board(6, 6);
+		
+		Piece pyr1 = new Piece(Piece.PYRAMID_STR);
+		b.place(pyr1, 0, 0);
+		b.commit();
+		b.place(pyr1, 2, 1);
+		
 		assertEquals(1, b.getColumnHeight(0));
 		assertEquals(2, b.getColumnHeight(1));
+		assertEquals(2, b.getColumnHeight(2));
+		assertEquals(3, b.getColumnHeight(3));
+		
+		assertEquals(3, b.getMaxHeight());
+		
+		assertEquals(3, b.getRowWidth(0));
+		assertEquals(4, b.getRowWidth(1));
+		assertEquals(1, b.getRowWidth(2));
+		assertEquals(0, b.getRowWidth(3));
+	}
+	
+	@Test
+	public void testSample1() {
+		Board b = new Board(3, 6);
+		
+		Piece pyr1 = new Piece(Piece.PYRAMID_STR);
+		b.place(pyr1, 0, 0);
+		
+		assertEquals(1, b.getColumnHeight(0));
+		assertEquals(2, b.getColumnHeight(1));
+		assertEquals(1, b.getColumnHeight(2));
+
 		assertEquals(2, b.getMaxHeight());
 		assertEquals(3, b.getRowWidth(0));
 		assertEquals(1, b.getRowWidth(1));
 		assertEquals(0, b.getRowWidth(2));
 	}
-
-	// Place sRotated into the board, then check some measures
+	
 	@Test
 	public void testSample2() {
+		Board b = new Board(3, 6);
+		
+		Piece pyr1 = new Piece(Piece.PYRAMID_STR);
+		Piece s = new Piece(Piece.S1_STR);
+		Piece sRotated = s.computeNextRotation();
+		
+		b.place(pyr1, 0, 0);
+		
 		b.commit();
 		int result = b.place(sRotated, 1, 1);
 		assertEquals(Board.PLACE_OK, result);
@@ -52,159 +63,235 @@ public class BoardTest {
 		assertEquals(3, b.getColumnHeight(2));
 		assertEquals(4, b.getMaxHeight());
 	}
-
-	// Make  more tests, by putting together longer series of
-	// place, clearRows, undo, place ... checking a few col/row/max
-	// numbers that the board looks right after the operations.
-
-	// clearing out 3 rows
+	
 	@Test
-	public void testBoard1(){
-		b.commit();
-		int result = b.place(stick, 0, 1);
-		assertEquals(Board.PLACE_OK, result);
+	public void testUndo() {
+		Board b = new Board(3, 6);
+		
+		Piece p1 = new Piece(Piece.STICK_STR);
+		b.place(p1, 1, 1);
+		b.undo();
+		
+		for (int i = 0; i < b.getWidth(); i++) {
+			assertEquals(0, b.getColumnHeight(i));
+		}
 
-		b.commit();
-		result = b.place(sRotated, 1, 1);
+		for (int i = 0; i < b.getHeight(); i++) {
+			assertEquals(0, b.getRowWidth(i));
+		}
+		
+		Board b2 = new Board(3, 6);
+		b2.place(p1, 1, 1);
+		b2.commit();
+		b2.place(p1, 0, 3);
+		b2.undo();
+		
+		int count = 0;
+		for (int i = 0; i < b2.grid.length; i++) {
+			for (int j = 0; j < b2.grid[i].length; j++) {
+				if (b2.grid[i][j]) {
+					count += 1;
+				}
+			}
+		}
+		
+		assertEquals(4, count);
+	}
 
-		assertEquals(Board.PLACE_ROW_FILLED, result);
+	@Test
+	public void testMaxHeight() {
+		Board b = new Board(3, 6);
+		assertEquals(0, b.getMaxHeight());
+		
+		Piece p = new Piece(Piece.STICK_STR);
+		b.place(p, 0, 0);
+		assertEquals(4, b.getMaxHeight());
+	}
+	
+	@Test
+	public void testFallingMaxHeight() {
+		Board b = new Board(3, 6);
+		
+		Piece p = new Piece(Piece.STICK_STR);
+		b.place(p, 0, 1);
 		assertEquals(5, b.getMaxHeight());
-		assertEquals(4,b.getColumnHeight(1));
-		assertEquals(3,b.getColumnHeight(2));
-		assertEquals(2,b.getRowWidth(3));
-
-		int numRowsCleared = b.clearRows();
-		assertEquals(3,numRowsCleared);
-		assertEquals(1,b.getRowWidth(1));
 
 		b.undo();
-
-		assertEquals(5, b.getMaxHeight());
-		assertEquals(2,b.getColumnHeight(1));
-		assertEquals(1,b.getColumnHeight(2));
-		assertEquals(1,b.getRowWidth(4));
-
-		//checking board width and height
-		assertEquals(3, b.getWidth());
-		assertEquals(6, b.getHeight());
-
+		b.place(p, 0, 0);
+		b.commit();
+		assertEquals(4, b.getMaxHeight());
 	}
-
-	// clearing out 4 rows
+	
 	@Test
-	public void testBoard2(){
-		assertTrue(b.getGrid(1, 1));
-
-		b.undo();
-
-		int result = b.place(square, 0, 0);
-		b.commit();
-
-		assertEquals(Board.PLACE_OK, result);
-
-		result = b.place(square, 0, 2);
-		b.commit();
-
-		assertEquals(Board.PLACE_OK, result);
-
-		result = b.place(square, 0, 4);
-		b.commit();
-
-		assertEquals(Board.PLACE_OK, result);
-
-		result = b.place(stick, 2, 0);
-		b.commit();
-
-		assertEquals(Board.PLACE_ROW_FILLED, result);
-		assertEquals(6, b.getMaxHeight());
-
-		int numRowsCleared = b.clearRows();
-
-		assertEquals(4,numRowsCleared);
-		assertEquals(2, b.getMaxHeight());
-		assertEquals(2,b.getColumnHeight(1));
-		assertEquals(0,b.getColumnHeight(2));
-		assertEquals(2,b.getRowWidth(1));
-
-		assertTrue(b.getGrid(78, 56));
+	public void testSeveralUndo() {
+		Piece p1 = new Piece(Piece.STICK_STR);
+		Board b2 = new Board(3, 10);
+		
+		b2.place(p1, 1, 1);
+		
+		b2.commit();
+		b2.place(p1, 0, 3);
+		b2.undo();
+		b2.place(p1, 0, 0);
+		b2.undo();
+		
+		assertTrue(Arrays.equals(new int[] {0, 5, 0}, b2.getHeight()));
 	}
-
-	// clearing rows with gaps in between
-	// verifying dropHeights
+	
 	@Test
-	public void testBoard3(){
-		//checking board width and height
-		assertEquals(3, b.getWidth());
-		assertEquals(6, b.getHeight());
-
-		b.commit();
-
-		assertEquals(2,b.dropHeight(sRotated, 0));
-		assertEquals(1,b.dropHeight(stick, 2));
-		assertEquals(1,b.dropHeight(pyr2, 1));
-
-		int result = b.place(pyr4, 0, 1);
-
-		assertEquals(Board.PLACE_OK, result);
-		assertEquals(2,b.dropHeight(sRotated, 1));
-		assertEquals(1,b.dropHeight(stick, 2));
-		assertEquals(2,b.getRowWidth(2));
-
-		b.undo();
-
-		assertEquals(2,b.getMaxHeight());
-
-		result = b.place(pyr3, 0, 2);
-
-		assertEquals(Board.PLACE_ROW_FILLED, result);
-
-		b.commit();
-		result = b.place(pyr3, 0, 4);
-
-		assertEquals(Board.PLACE_ROW_FILLED, result);
-		assertEquals(3,b.clearRows());
-
+	public void testClearRowsNothing() {
+		// nothing to do
+		
+		Board b = new Board(5, 5);
+		b.grid[0][0] = true;
+		b.grid[1][0] = true;
+		b.grid[0][1] = true;
+		
+		Board expected = new Board(5, 5);
+		expected.grid[0][0] = true;
+		expected.grid[1][0] = true;
+		expected.grid[0][1] = true;
+		
+		assertEquals(b.clearRows(), 0);
+				
+		assertArrayEquals(expected.grid, b.grid);;
 	}
 
 	@Test
-	public void testBoard4(){
-		assertEquals(3,b.getRowWidth(0));
-		assertEquals(1,b.clearRows());
+	public void testClearRowsOneLine() {
+		// remove one line without having anything to drop
+		
+		Board b = new Board(5, 5);
+		b.grid[0][0] = true;
+		b.grid[1][0] = true;
+		b.grid[2][0] = true;
+		b.grid[3][0] = true;
+		b.grid[4][0] = true;
+		//b.grid[0][1] = true;
+		
+		b.updateWidthsHeights();
+		
+		Board expected = new Board(5, 5);
 
-		b.commit();
-
-		assertEquals(1,b.getRowWidth(0));
-
-		int result = b.place(pyr4, 0, 0);
-		int rowsCleared = b.clearRows();
-		b.commit();
-
-		assertEquals(Board.PLACE_OK, result);
-		assertEquals(0,rowsCleared);
-		assertEquals(3,b.getMaxHeight());
-
-		result = b.place(sRotated, 1, 1);
-		assertEquals(4,b.getMaxHeight());
-		rowsCleared = b.clearRows();
-		b.commit();
-
-		assertEquals(Board.PLACE_ROW_FILLED, result);
-		assertEquals(2,rowsCleared);
-		assertEquals(2,b.getMaxHeight());
-
-		result = b.place(sRotated, 1, 1);
-		rowsCleared = b.clearRows();
-
-		assertEquals(Board.PLACE_OK, result);
-		assertEquals(0,rowsCleared);
-		assertEquals(4,b.dropHeight(square, 1));
-		assertEquals(3,b.dropHeight(sRotated, 1));
-		assertEquals(2,b.getRowWidth(0));
-		assertEquals(1,b.getRowWidth(3));
-		assertEquals(4,b.getColumnHeight(1));
-
-		assertTrue(!b.getGrid(0, 1));
-		assertTrue(b.getGrid(1, 3));
+		assertEquals(b.clearRows(), 1);
+				
+		assertArrayEquals(expected.grid, b.grid);;
 	}
 
+	@Test
+	public void testClearRowsOneLineWithDrop() {
+		// remove one line and drop the next line
+		
+		Board b = new Board(5, 5);
+		b.grid[0][0] = true;
+		b.grid[1][0] = true;
+		b.grid[2][0] = true;
+		b.grid[3][0] = true;
+		b.grid[4][0] = true;
+		b.grid[0][1] = true;
+		
+		b.updateWidthsHeights();
+		
+		Board expected = new Board(5, 5);
+		expected.grid[0][0] = true;
+		
+		assertEquals(b.clearRows(), 1);
+				
+		assertArrayEquals(expected.grid, b.grid);;
+	}
+
+	@Test
+	public void testClearRowsTwoLinesWithDrop() {
+		// remove one line and drop the next line
+		
+		Board b = new Board(5, 5);
+		b.grid[0][0] = true;
+		b.grid[1][0] = true;
+		b.grid[2][0] = true;
+		b.grid[3][0] = true;
+		b.grid[4][0] = true;
+		
+		b.grid[0][1] = true;
+		b.grid[1][1] = true;
+		b.grid[2][1] = true;
+		b.grid[3][1] = true;
+		b.grid[4][1] = true;
+		
+		b.grid[0][2] = true;
+		b.grid[0][3] = true;
+		b.grid[4][2] = true;
+		
+		b.updateWidthsHeights();
+		
+		Board expected = new Board(5, 5);
+		expected.grid[0][0] = true;
+		expected.grid[0][1] = true;
+		expected.grid[4][0] = true;
+		
+		assertEquals(b.clearRows(), 2);
+				
+		assertArrayEquals(expected.grid, b.grid);;
+	}
+	
+	@Test
+	public void testClearHeights() {
+		// can we call dropHeight after having cleared the board
+		
+		Board b = new Board(5, 5);
+		b.grid[0][0] = true;
+		b.grid[1][0] = true;
+		b.grid[2][0] = true;
+		b.grid[3][0] = true;
+		b.grid[4][0] = true;
+		
+		b.updateWidthsHeights();
+		
+		b.clearRows();
+		
+		assertEquals(0, b.dropHeight(new Piece(Piece.SQUARE_STR), 0));
+	}
+	
+	@Test
+	public void clearComplicated() {
+		Board b = new Board(5, 7);
+		b.grid[0][0] = true;
+		b.grid[1][0] = false;
+		b.grid[2][0] = true;
+		b.grid[3][0] = false;
+		b.grid[4][0] = true;
+		
+		b.grid[0][1] = true;
+		b.grid[1][1] = true;
+		b.grid[2][1] = true;
+		b.grid[3][1] = true;
+		b.grid[4][1] = true;
+		
+		b.grid[0][2] = true;
+		b.grid[1][2] = true;
+		b.grid[2][2] = false;
+		b.grid[3][2] = true;
+		b.grid[4][2] = false;
+		
+		b.updateWidthsHeights();
+
+		Board expected = new Board(5, 7);
+		expected.grid[0][0] = true;
+		expected.grid[1][0] = false;
+		expected.grid[2][0] = true;
+		expected.grid[3][0] = false;
+		expected.grid[4][0] = true;
+		
+		expected.grid[0][1] = true;
+		expected.grid[1][1] = true;
+		expected.grid[2][1] = false;
+		expected.grid[3][1] = true;
+		expected.grid[4][1] = false;
+		
+		expected.updateWidthsHeights();
+	
+		assertEquals(1, b.clearRows());
+		
+		assertArrayEquals(expected.grid, b.grid);;
+		
+	}
 }
